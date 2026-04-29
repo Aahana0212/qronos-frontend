@@ -451,7 +451,7 @@ const OwnerDashboard = () => {
                       recentOrders.map((order) => (
                         <tr key={order.id}>
                           <td>#{order.order_id}</td>
-                          <td>{order.customer_name}</td>
+                          <td>{order.customer_name || 'Guest'}</td>
                           <td>₹{order.total_amount}</td>
                           <td><span className={`status-badge ${order.order_status || order.status}`}>{order.order_status || order.status}</span></td>
                           <td>{new Date(order.created_at).toLocaleTimeString()}</td>
@@ -487,7 +487,7 @@ const OwnerDashboard = () => {
                     allOrders.map((order) => (
                       <tr key={order.id}>
                         <td>#{order.order_id}</td>
-                        <td>{order.customer_name}</td>
+                        <td>{order.customer_name || 'Guest'}</td>
                         <td>₹{order.total_amount}</td>
                         <td><span className={`status-badge ${order.order_status || order.status}`}>{order.order_status || order.status}</span></td>
                         <td>{new Date(order.created_at).toLocaleTimeString()}</td>

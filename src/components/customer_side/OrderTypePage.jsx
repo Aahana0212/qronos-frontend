@@ -1,66 +1,25 @@
 // src/components/customer_side/OrderTypePage.jsx
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './OrderTypePage.css';
 
 const OrderTypePage = () => {
   const navigate = useNavigate();
-  const [showAddress, setShowAddress] = useState(false);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const handleOrderTypeSelect = (type) => {
-    // ✅ Save order type
     localStorage.setItem('qronos_order_type', type);
-    
+
     if (type === 'delivery') {
-      setShowAddress(true);
+      // Skip address prompt — collect address later in the checkout flow
+      navigate('/restaurant-select', { state: { orderType: 'delivery' } });
     } else if (type === 'dinein') {
-      // ✅ Pass orderType to QR scan page
+      // Dine-in skips the picker — the QR encodes the restaurant
       navigate('/scan-qr', { state: { orderType: 'dinein' } });
     } else if (type === 'takeaway') {
-      // ✅ Pass orderType to menu page
-      navigate('/menu', { state: { orderType: 'takeaway' } });
+      // Takeaway: pick a restaurant first, then load its menu
+      navigate('/restaurant-select', { state: { orderType: 'takeaway' } });
     }
   };
-
-  const handleDeliverySubmit = () => {
-    if (deliveryAddress.trim()) {
-      localStorage.setItem('deliveryAddress', deliveryAddress);
-      // ✅ Pass orderType and address to menu page
-      navigate('/menu', { 
-        state: { 
-          orderType: 'delivery',
-          deliveryAddress: deliveryAddress 
-        } 
-      });
-    } else {
-      alert('Please enter your delivery address');
-    }
-  };
-
-  if (showAddress) {
-    return (
-      <div className="order-type-container">
-        <div className="order-type-card">
-          <button className="back-btn" onClick={() => setShowAddress(false)}>← Back</button>
-          <div className="address-form">
-            <div className="address-icon">📍</div>
-            <h2>Delivery Address</h2>
-            <p className="address-subtitle">Where should we deliver your order?</p>
-            <textarea
-              placeholder="Enter your full delivery address (House No., Street, City, Pincode)"
-              value={deliveryAddress}
-              onChange={(e) => setDeliveryAddress(e.target.value)}
-              rows="4"
-            />
-            <button className="submit-address" onClick={handleDeliverySubmit}>
-              Continue to Menu →
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="order-type-container">
@@ -69,12 +28,12 @@ const OrderTypePage = () => {
         <button className="order-type-back-btn" onClick={() => navigate('/customer-login')}>
           ← Back
         </button>
-        
+
         <div className="order-type-header">
           <h1>How would you like to order?</h1>
           <p>Choose your preferred way to enjoy your meal</p>
         </div>
-        
+
         <div className="order-options">
           {/* Dine In Option */}
           <div className="order-option" onClick={() => handleOrderTypeSelect('dinein')}>

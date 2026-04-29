@@ -9,19 +9,18 @@ export const RestaurantProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get restaurant ID from URL or localStorage
+    // Resolve restaurant id from URL (e.g. QR code links carry ?r=N) or from
+    // a previous session in localStorage. Do NOT default to a hardcoded id —
+    // that would silently bind every fresh visitor to restaurant #1, which
+    // also clobbers a freshly-logged-in restaurant's session.
     const params = new URLSearchParams(window.location.search);
-    let id = params.get('restaurantId') || params.get('r');
-    
-    if (!id) {
-      id = localStorage.getItem('restaurantId');
+    const fromUrl = params.get('restaurantId') || params.get('r');
+    const id = fromUrl || localStorage.getItem('restaurantId') || null;
+
+    if (fromUrl) {
+      localStorage.setItem('restaurantId', fromUrl);
     }
-    
-    if (!id) {
-      id = '1'; // default
-    }
-    
-    localStorage.setItem('restaurantId', id);
+
     setRestaurantId(id);
     setLoading(false);
   }, []);

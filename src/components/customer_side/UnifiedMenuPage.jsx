@@ -136,16 +136,27 @@ const UnifiedMenuPage = () => {
   useEffect(() => {
     const type = location.state?.orderType || localStorage.getItem('qronos_order_type') || 'delivery';
     const table = location.state?.tableNumber || localStorage.getItem('qronos_table') || null;
-    const restId = location.state?.restaurantId || localStorage.getItem('qronos_restaurant_id') || '1';
+    const restId = location.state?.restaurantId || localStorage.getItem('qronos_restaurant_id') || null;
     const address = location.state?.deliveryAddress || localStorage.getItem('deliveryAddress') || '';
     const uid = location.state?.userId || localStorage.getItem('qronos_user_id') || null;
-    
+
+    if (!restId) {
+      // No restaurant chosen yet — bounce the customer to the right picker.
+      // Dine-in needs a QR scan; takeaway/delivery use the restaurant list.
+      if (type === 'dinein') {
+        navigate('/scan-qr', { state: { orderType: 'dinein' } });
+      } else {
+        navigate('/restaurant-select', { state: { orderType: type, deliveryAddress: address } });
+      }
+      return;
+    }
+
     setOrderType(type);
     setTableNumber(table);
     setRestaurantId(restId);
     setDeliveryAddress(address);
     setUserId(uid);
-  }, [location.state]);
+  }, [location.state, navigate]);
 
   // Load cart from localStorage on mount
   useEffect(() => {

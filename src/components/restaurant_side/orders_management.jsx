@@ -14,7 +14,7 @@ const OrdersManagement = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderItems, setSelectedOrderItems] = useState([]);
 
-  const restaurantId = localStorage.getItem('restaurantId') || '1';
+  const restaurantId = localStorage.getItem('restaurantId');
 
   const loadOrders = async ({ silent = false } = {}) => {
     if (!silent) setRefreshing(true);
@@ -59,12 +59,16 @@ const OrdersManagement = () => {
   };
 
   useEffect(() => {
+    if (!restaurantId) {
+      navigate('/restaurant-login');
+      return;
+    }
     loadOrders({ silent: true });
     // Poll for new orders every 10s so the page shows orders placed after open.
     const interval = setInterval(() => loadOrders({ silent: true }), 10000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [restaurantId]);
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {

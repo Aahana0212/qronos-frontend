@@ -66,14 +66,28 @@ const CartPage = () => {
   ];
 
   const handleProceedToCheckout = () => {
-    navigate('/checkout', { 
-      state: { 
-        cart, 
-        cartTotal, 
+    // Carry restaurantId and tableNumber forward so checkout posts them to the
+    // backend — without these the order can't be routed to the right restaurant.
+    const restaurantId = localStorage.getItem('qronos_restaurant_id');
+    const restaurantName = localStorage.getItem('qronos_restaurant_name') || '';
+
+    if (!restaurantId) {
+      alert('No restaurant selected. Please pick a restaurant first.');
+      navigate('/restaurant-select', { state: { orderType } });
+      return;
+    }
+
+    navigate('/checkout', {
+      state: {
+        cart,
+        cartTotal,
         specialInstructions,
         paymentMethod: selectedPayment,
-        orderType: orderType
-      } 
+        orderType: orderType,
+        restaurantId,
+        restaurantName,
+        tableNumber,
+      },
     });
   };
 

@@ -18,32 +18,39 @@ const QRScanPage = () => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [scannedTable, setScannedTable] = useState(null);
 
-  // Get restaurantId from URL params if present
+  // Restaurant id comes from the QR-encoded URL (?r=N or ?restaurantId=N).
+  // No fallback — without a real QR/url, the dine-in flow has no restaurant.
   const getRestaurantId = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('restaurantId') || '1';
+    return params.get('restaurantId') || params.get('r') || null;
   };
 
   // Simulate QR scan
   const startScan = () => {
+    const rid = getRestaurantId();
+    if (!rid) {
+      setError(
+        'No restaurant detected. Please scan a real table QR, or open the QR link from the restaurant.'
+      );
+      return;
+    }
     setScanning(true);
     setError(null);
-    
+
     setTimeout(() => {
-      const restaurantId = getRestaurantId();
-      const mockQRData = {
-        restaurantId: restaurantId,
-        tableNumber: Math.floor(Math.random() * 20) + 1,
-        restaurantName: 'CULINARY HUB'
-      };
-      
-      setScannedTable(mockQRData.tableNumber);
+      setScannedTable(Math.floor(Math.random() * 20) + 1);
       setShowConfirm(true);
       setScanning(false);
     }, 2000);
   };
 
   const handleManualSubmit = () => {
+    if (!getRestaurantId()) {
+      setError(
+        'No restaurant detected. Please scan a real table QR, or open the QR link from the restaurant.'
+      );
+      return;
+    }
     if (manualTable && manualTable > 0 && manualTable <= 50) {
       setScannedTable(parseInt(manualTable));
       setShowConfirm(true);
@@ -55,17 +62,22 @@ const QRScanPage = () => {
 
   const confirmTable = () => {
     const restaurantId = getRestaurantId();
+    if (!restaurantId) {
+      setError('Restaurant not identified. Please rescan the QR.');
+      setShowConfirm(false);
+      return;
+    }
     localStorage.setItem('qronos_table', String(scannedTable));
     localStorage.setItem('qronos_order_type', 'dinein');
-    
-    navigate('/menu', { 
-      state: { 
+    localStorage.setItem('qronos_restaurant_id', String(restaurantId));
+
+    navigate('/menu', {
+      state: {
         orderType: 'dinein',
         tableNumber: scannedTable,
         restaurantId: restaurantId,
-        restaurantName: 'CULINARY HUB',
-        userId: userId
-      } 
+        userId: userId,
+      },
     });
   };
 

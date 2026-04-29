@@ -10,6 +10,7 @@ import LandingPage from './components/customer_side/LandingPage';
 import CustomerLoginPage from './components/customer_side/CustomerLoginPage';
 import CustomerRegisterPage from './components/customer_side/CustomerRegisterPage';
 import OrderTypePage from './components/customer_side/OrderTypePage';
+import RestaurantSelectorPage from './components/customer_side/RestaurantSelectorPage';
 import QRScanPage from './components/customer_side/QRScanPage';
 import UnifiedMenuPage from './components/customer_side/UnifiedMenuPage';
 import CartPage from './components/customer_side/CartPage';
@@ -50,6 +51,7 @@ function App() {
           
           {/* Customer Order Flow */}
           <Route path="/order-type" element={<OrderTypePage />} />
+          <Route path="/restaurant-select" element={<RestaurantSelectorPage />} />
           <Route path="/scan-qr" element={<QRScanPage />} />
           <Route path="/menu" element={<UnifiedMenuPage />} />
           <Route path="/cart" element={<CartPage />} />

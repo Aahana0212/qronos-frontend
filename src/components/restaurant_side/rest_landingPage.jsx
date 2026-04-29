@@ -11,6 +11,9 @@ const LandingPage = () => {
       {/* Navbar */}
       <nav className="navbar">
         <div className="nav-container">
+          <button className="nav-btn back" onClick={() => navigate('/')}>
+            ← Back
+          </button>
           <div className="logo">
             <span className="logo-icon">🍽️</span>
             <span className="logo-text">QRONOS</span>
@@ -44,7 +47,6 @@ const LandingPage = () => {
             <button className="card-btn" onClick={() => navigate('/restaurant-register')}>
               Start Free Trial →
             </button>
-            <button className="card-btn">Watch Demo</button>
           </div>
           <p className="hero-note">No credit card required • Free for 30 days</p>
         </div>
@@ -149,31 +151,6 @@ const LandingPage = () => {
             <span className="type-badge">☕ Coffee Shops</span>
             <span className="type-badge">🍛 Family Restaurants</span>
             <span className="type-badge">🍦 Ice Cream Parlors</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="testimonials-section">
-        <div className="container">
-          <h2 className="section-title">Trusted by 500+ Restaurants</h2>
-          <div className="testimonial-grid">
-            <div className="testimonial-card">
-              <div className="quote">"</div>
-              <p className="testimonial-text">QRONOS saved us ₹40,000 in waiter costs!</p>
-              <div className="testimonial-author">
-                <span>— Raj, Pizza Hub</span>
-                <div className="stars">⭐⭐⭐⭐⭐</div>
-              </div>
-            </div>
-            <div className="testimonial-card">
-              <div className="quote">"</div>
-              <p className="testimonial-text">Order errors reduced by 90%. Kitchen loves it!</p>
-              <div className="testimonial-author">
-                <span>— Priya, Curry Point</span>
-                <div className="stars">⭐⭐⭐⭐⭐</div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

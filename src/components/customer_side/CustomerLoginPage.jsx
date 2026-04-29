@@ -33,8 +33,18 @@ const CustomerLoginPage = () => {
         password: formData.password,
         rememberMe: formData.rememberMe,
       });
+      if (!response || response.error || !response.token) {
+        throw new Error(response?.message || 'Login failed');
+      }
       localStorage.setItem('qronos_token', response.token);
-      localStorage.setItem('qronos_user', JSON.stringify(response.user));
+      // Only persist user when the server actually returned one — otherwise
+      // JSON.stringify(undefined) writes the literal string "undefined" which
+      // later breaks JSON.parse.
+      if (response.user) {
+        localStorage.setItem('qronos_user', JSON.stringify(response.user));
+      } else {
+        localStorage.removeItem('qronos_user');
+      }
       navigate('/order-type');
     } catch (err) {
       setError(err.message || 'Login failed');

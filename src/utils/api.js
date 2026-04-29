@@ -2,7 +2,8 @@
 // Override via REACT_APP_API_URL at build time (e.g. "/api" for nginx reverse proxy on prod).
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
-// Get restaurant ID from URL or localStorage
+// Get restaurant ID from URL or localStorage. Returns null if neither is set
+// — callers should redirect to login rather than silently using a default.
 export const getRestaurantId = () => {
   const params = new URLSearchParams(window.location.search);
   const restaurantParam = params.get('restaurantId') || params.get('r');
@@ -10,23 +11,23 @@ export const getRestaurantId = () => {
     localStorage.setItem('restaurantId', restaurantParam);
     return restaurantParam;
   }
-  const stored = localStorage.getItem('restaurantId');
-  if (stored) return stored;
-  return '1';
+  return localStorage.getItem('restaurantId') || null;
 };
 
 // Main API caller with better error handling
 export const apiCall = async (endpoint, options = {}) => {
   const restaurantId = getRestaurantId();
-  
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(restaurantId ? { 'x-restaurant-id': restaurantId } : {}),
+    ...options.headers,
+  };
+
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        'x-restaurant-id': restaurantId,
-        ...options.headers,
-      },
+      headers,
     });
     
     if (!response.ok) {

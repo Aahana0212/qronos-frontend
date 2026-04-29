@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
-import { apiPost, getRestaurantId } from '../../utils/api';
+import { apiPost } from '../../utils/api';
 import './CheckoutPage.css';
 
 const CheckoutPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const { cart, cartTotal, specialInstructions, paymentMethod, orderType: passedOrderType } = location.state || {};
+
+  const {
+    cart,
+    cartTotal,
+    specialInstructions,
+    paymentMethod,
+    orderType: passedOrderType,
+    restaurantId: passedRestaurantId,
+    tableNumber: passedTableNumber,
+  } = location.state || {};
   const [loading, setLoading] = useState(false);
   const [orderType, setOrderType] = useState('delivery');
   const [showQRModal, setShowQRModal] = useState(false);
@@ -22,30 +30,59 @@ const CheckoutPage = () => {
     name: ''
   });
 
+  // Read any partially-typed checkout details that an earlier render saved.
+  // This survives hot-reloads and brief unmounts so the form stays sticky.
+  const readDraft = () => {
+    try {
+      const raw = localStorage.getItem('qronos_checkout_draft');
+      if (!raw || raw === 'undefined' || raw === 'null') return {};
+      return JSON.parse(raw) || {};
+    } catch (_e) {
+      return {};
+    }
+  };
+
+  const readStoredUser = () => {
+    try {
+      const raw = localStorage.getItem('qronos_user');
+      if (!raw || raw === 'undefined' || raw === 'null') return {};
+      return JSON.parse(raw) || {};
+    } catch (_e) {
+      return {};
+    }
+  };
+
+  const [customerDetails, setCustomerDetails] = useState(() => {
+    const draft = readDraft();
+    const u = readStoredUser();
+    return {
+      name: draft.name || u.name || '',
+      phone: draft.phone || u.phone || '',
+      email: draft.email || u.email || '',
+      address: draft.address || u.address || '',
+    };
+  });
+
   useEffect(() => {
     if (!cart || cart.length === 0) {
       navigate('/cart');
     }
     const savedOrderType = passedOrderType || localStorage.getItem('qronos_order_type') || 'delivery';
     setOrderType(savedOrderType);
-    
+
     if (paymentMethod === 'card') {
       setShowCardForm(true);
     }
   }, [cart, navigate, passedOrderType, paymentMethod]);
 
-  const [customerDetails, setCustomerDetails] = useState({
-    name: '',
-    phone: '',
-    email: '',
-    address: ''
-  });
-
   const handleInputChange = (e) => {
-    setCustomerDetails({
-      ...customerDetails,
-      [e.target.name]: e.target.value
-    });
+    const next = { ...customerDetails, [e.target.name]: e.target.value };
+    setCustomerDetails(next);
+    // Persist a draft on every keystroke so the typed values can be recovered
+    // even if React state is wiped (hot-reload, modal-driven remount, etc.).
+    try {
+      localStorage.setItem('qronos_checkout_draft', JSON.stringify(next));
+    } catch (_e) { /* ignore */ }
   };
 
   const handleCardInputChange = (e) => {
@@ -140,12 +177,55 @@ const CheckoutPage = () => {
   };
 
   const placeOrder = async () => {
-    const restaurantId = getRestaurantId();
-    const user = JSON.parse(localStorage.getItem('qronos_user') || '{}');
+    // Resolve restaurantId from navigation state first (carried from cart) and
+    // fall back to the customer-side localStorage key. Do NOT use the
+    // restaurant-side login key (`restaurantId`) — that one belongs to the
+    // restaurant operator and would route the order to the wrong restaurant.
+    const rawRestaurantId =
+      passedRestaurantId ?? localStorage.getItem('qronos_restaurant_id');
+    const restaurantId = rawRestaurantId ? parseInt(rawRestaurantId, 10) : null;
+
+    if (!restaurantId) {
+      alert('No restaurant selected. Please pick a restaurant first.');
+      navigate('/restaurant-select', { state: { orderType } });
+      setLoading(false);
+      return;
+    }
+
+    const tableNumber =
+      passedTableNumber ?? localStorage.getItem('qronos_table') ?? null;
+
+    const user = readStoredUser();
+    const draft = readDraft();
 
     const subtotal = cartTotal - (cartTotal * 0.05) - (orderType === 'delivery' ? 40 : 0);
     const deliveryFee = orderType === 'delivery' ? 40 : 0;
     const tax = cartTotal * 0.05;
+
+    // Resolve customer fields from every source we have so we never POST blank.
+    // Order of precedence: typed form value → draft saved on keystroke → logged-in user.
+    const pick = (...vals) => {
+      for (const v of vals) {
+        const t = (v == null ? '' : String(v)).trim();
+        if (t) return t;
+      }
+      return '';
+    };
+    const finalCustomerName  = pick(customerDetails.name,  draft.name,  user.name);
+    const finalCustomerPhone = pick(customerDetails.phone, draft.phone, user.phone);
+    const finalCustomerAddr  = pick(customerDetails.address, draft.address, user.address);
+
+    // Hard guard: still nothing → force the customer back to the form.
+    if (!finalCustomerName) {
+      alert('Please enter your name before placing the order.');
+      setLoading(false);
+      return;
+    }
+    if (!finalCustomerPhone) {
+      alert('Please enter your phone number before placing the order.');
+      setLoading(false);
+      return;
+    }
 
     const orderData = {
       user_id: user.id || null,
@@ -161,14 +241,18 @@ const CheckoutPage = () => {
       tax,
       total_amount: cartTotal,
       payment_method: paymentMethod,
-      customer_name: customerDetails.name,
-      customer_phone: customerDetails.phone,
-      delivery_address: customerDetails.address || null,
+      customer_name: finalCustomerName,
+      customer_phone: finalCustomerPhone,
+      delivery_address: finalCustomerAddr || null,
+      table_number: orderType === 'dinein' && tableNumber ? String(tableNumber) : null,
       special_instructions: specialInstructions || null
     };
 
     try {
+      // Temporary debug: confirm what's actually being POSTed.
+      console.log('[checkout] POST /orders payload =', orderData);
       const response = await apiPost('/orders', orderData);
+      console.log('[checkout] POST /orders response =', response);
 
       if (!response.success) {
         alert(response.message || 'Failed to place order. Please try again.');
@@ -178,8 +262,18 @@ const CheckoutPage = () => {
 
       const newOrderId = response.orderId;
 
+      // Order placed — discard the keystroke-draft so it doesn't leak into a
+      // future checkout for a different person.
+      localStorage.removeItem('qronos_checkout_draft');
+
       // Keep localStorage record for client-side order history
-      const orders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
+      let orders = [];
+      try {
+        const rawOrders = localStorage.getItem('qronos_orders');
+        if (rawOrders && rawOrders !== 'undefined' && rawOrders !== 'null') {
+          orders = JSON.parse(rawOrders) || [];
+        }
+      } catch (_e) { orders = []; }
       orders.push({ ...orderData, orderId: newOrderId, status: 'confirmed' });
       localStorage.setItem('qronos_orders', JSON.stringify(orders));
 

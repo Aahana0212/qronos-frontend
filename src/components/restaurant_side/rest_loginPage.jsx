@@ -52,46 +52,38 @@ const RestLoginPage = () => {
 
       console.log('Full Login Response:', response); // Debugging
 
-      if (!response) {
-        throw new Error('No response from server');
+      if (!response || response.error) {
+        throw new Error(response?.message || 'No response from server');
       }
 
-      // ✅ Store token
-      if (response.token) {
-        localStorage.setItem('qronos_token', response.token);
-      }
-      
-      // ✅ Store user data
-      const userData = response.user || { role: formData.role };
-      localStorage.setItem('qronos_user', JSON.stringify(userData));
-      
-      // ✅ IMPORTANT FIX: Get restaurantId from multiple possible locations
-      let restaurantId = null;
-      
-      if (response.restaurantId) {
-        restaurantId = response.restaurantId;
-      } else if (response.user?.restaurantId) {
-        restaurantId = response.user.restaurantId;
-      } else if (response.user?.restaurant_id) {
-        restaurantId = response.user.restaurant_id;
-      } else if (response.restaurant?.id) {
-        restaurantId = response.restaurant.id;
-      } else if (formData.restaurantSlug) {
-        // Fallback: agar kuch nahi mila toh slug se ID fetch karna padega
-        // Temporary: manually set for testing
-        restaurantId = '1';
-        console.warn('Using default restaurantId: 1');
-      }
-      
-      if (restaurantId) {
-        localStorage.setItem('restaurantId', restaurantId);
-        console.log('✅ RestaurantId saved:', restaurantId);
-      } else {
-        console.error('❌ No restaurantId found in response:', response);
-        setError('Unable to get restaurant information. Please try again.');
+      // Resolve restaurantId from response (no hardcoded fallback)
+      const restaurantId =
+        response.restaurantId ??
+        response.user?.restaurantId ??
+        response.user?.restaurant_id ??
+        response.restaurant?.id ??
+        null;
+
+      if (!restaurantId) {
+        console.error('❌ No restaurantId in login response:', response);
+        setError('Unable to get restaurant information. Please contact support.');
         setLoading(false);
         return;
       }
+
+      // Clear any stale session data from a previous login before writing fresh values
+      localStorage.removeItem('qronos_token');
+      localStorage.removeItem('qronos_user');
+      localStorage.removeItem('restaurantId');
+
+      if (response.token) {
+        localStorage.setItem('qronos_token', response.token);
+      }
+
+      const userData = response.user || { role: formData.role };
+      localStorage.setItem('qronos_user', JSON.stringify(userData));
+      localStorage.setItem('restaurantId', String(restaurantId));
+      console.log('✅ RestaurantId saved:', restaurantId);
 
       // ✅ Get role safely
       const userRole = response.user?.role || formData.role;
@@ -153,7 +145,7 @@ const RestLoginPage = () => {
             <input
               type="email"
               name="email"
-              placeholder="owner@pizzahub.com"
+              placeholder="your@email.com"
               value={formData.email}
               onChange={handleChange}
               required

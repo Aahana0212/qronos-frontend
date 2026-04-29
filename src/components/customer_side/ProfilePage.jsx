@@ -15,18 +15,25 @@ const ProfilePage = () => {
 
   useEffect(() => {
     const userData = localStorage.getItem('qronos_user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setFormData({
-        name: parsedUser.name || '',
-        email: parsedUser.email || '',
-        phone: parsedUser.phone || '',
-        address: parsedUser.address || ''
-      });
-    } else {
+    if (!userData || userData === 'undefined' || userData === 'null') {
       navigate('/customer-login');
+      return;
     }
+    let parsedUser;
+    try {
+      parsedUser = JSON.parse(userData);
+    } catch (_e) {
+      localStorage.removeItem('qronos_user');
+      navigate('/customer-login');
+      return;
+    }
+    setUser(parsedUser);
+    setFormData({
+      name: parsedUser.name || '',
+      email: parsedUser.email || '',
+      phone: parsedUser.phone || '',
+      address: parsedUser.address || ''
+    });
   }, [navigate]);
 
   const handleInputChange = (e) => {
