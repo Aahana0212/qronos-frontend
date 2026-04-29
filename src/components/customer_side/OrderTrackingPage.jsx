@@ -1,6 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { apiGet } from '../../utils/api';
 import './OrderTrackingPage.css';
+
+// Map the backend `order_status` (set by kitchen / admin) to the step key the tracker UI uses.
+// "ready" / "delivered" mean different things depending on order type, so the type matters.
+const mapBackendStatus = (backendStatus, orderType) => {
+  switch (backendStatus) {
+    case 'pending':
+    case 'confirmed':
+      return 'confirmed';
+    case 'preparing':
+      return 'preparing';
+    case 'ready':
+      return 'ready';
+    case 'out_for_delivery':
+      return 'out-for-delivery';
+    case 'delivered':
+      if (orderType === 'dinein') return 'served';
+      if (orderType === 'takeaway') return 'picked';
+      return 'delivered';
+    case 'cancelled':
+      return 'cancelled';
+    default:
+      return 'confirmed';
+  }
+};
 
 const OrderTrackingPage = () => {
   const { orderId } = useParams();
@@ -85,44 +110,57 @@ const OrderTrackingPage = () => {
 
   useEffect(() => {
     loadOrder();
+    // Poll backend every 5s so kitchen / admin status changes show up live.
+    const interval = setInterval(() => loadOrder({ silent: true }), 5000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
-  const loadOrder = () => {
-    const orders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
-    const foundOrder = orders.find(o => o.orderId === orderId);
-    
-    if (foundOrder) {
-      setOrder(foundOrder);
-      simulateOrderProgress(foundOrder.orderType);
-    } else {
-      setOrder(null);
-    }
-    setLoading(false);
-  };
-
-  const simulateOrderProgress = (orderType) => {
-    const steps = orderType === 'dinein' ? dineInSteps : (orderType === 'takeaway' ? takeawaySteps : orderSteps);
-    let currentStep = 0;
-    
-    const interval = setInterval(() => {
-      if (currentStep < steps.length - 1) {
-        currentStep++;
-        setCurrentStatus(currentStep);
-        if (order) {
-          const updatedOrder = { ...order, status: steps[currentStep].status };
-          setOrder(updatedOrder);
-          
-          const orders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
-          const index = orders.findIndex(o => o.orderId === orderId);
-          if (index !== -1) {
-            orders[index] = updatedOrder;
-            localStorage.setItem('qronos_orders', JSON.stringify(orders));
-          }
-        }
-      } else {
-        clearInterval(interval);
+  const loadOrder = async ({ silent = false } = {}) => {
+    // 1) Try backend (authoritative).
+    try {
+      const resp = await apiGet(`/orders/${orderId}`);
+      if (resp && resp.success && resp.order) {
+        const o = resp.order;
+        const orderType = o.order_type;
+        const liveOrder = {
+          // shape the UI reads
+          orderId: o.order_id,
+          orderType,
+          status: mapBackendStatus(o.order_status, orderType),
+          total: Number(o.total_amount),
+          orderDate: o.created_at,
+          paymentMethod: o.payment_method,
+          customerDetails: {
+            name: o.customer_name,
+            phone: o.customer_phone,
+            address: o.delivery_address,
+          },
+          items: (resp.items || []).map(it => ({
+            name: it.name,
+            quantity: it.quantity,
+            price: Number(it.price_at_time),
+          })),
+          // keep backend fields too for shape-agnostic helpers
+          order_status: o.order_status,
+          total_amount: o.total_amount,
+          created_at: o.created_at,
+        };
+        setOrder(liveOrder);
+        if (!silent) setLoading(false);
+        return;
       }
-    }, 5000);
+    } catch (e) {
+      console.warn('Order fetch failed, falling back to localStorage:', e?.message || e);
+    }
+
+    // 2) Fallback to localStorage entry (offline / unknown order).
+    if (!silent) {
+      const orders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
+      const foundOrder = orders.find(o => o.orderId === orderId);
+      setOrder(foundOrder || null);
+      setLoading(false);
+    }
   };
 
   const getSteps = () => {
@@ -135,6 +173,19 @@ const OrderTrackingPage = () => {
   const steps = getSteps();
   const currentStepIndex = steps.findIndex(s => s.status === order?.status) || 0;
   const progressPercentage = ((currentStepIndex + 1) / steps.length) * 100;
+
+  // CheckoutPage and the API use snake_case (total_amount, price_at_time) while older entries
+  // may use camelCase (total, price). Normalize so the UI never crashes on undefined.
+  const toMoney = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n.toFixed(2) : '0.00';
+  };
+  const orderTotal = order?.total ?? order?.total_amount ?? order?.cartTotal ?? 0;
+  const orderDate = order?.orderDate ?? order?.created_at ?? Date.now();
+  const orderItems = Array.isArray(order?.items) ? order.items : [];
+  const itemPrice = (it) => Number(it?.price ?? it?.price_at_time ?? 0);
+  const itemQty = (it) => Number(it?.quantity ?? 1);
+  const itemName = (it) => it?.name || `Item #${it?.menu_item_id ?? ''}`;
 
   if (loading) {
     return (
@@ -152,7 +203,7 @@ const OrderTrackingPage = () => {
           <div className="not-found-icon">🔍</div>
           <h2>Order Not Found</h2>
           <p>We couldn't find your order. Please check the order ID.</p>
-          <button onClick={() => navigate('/')} className="go-home-btn">Go to Home</button>
+          <button onClick={() => navigate('/order-type')} className="go-home-btn">Go to Home</button>
         </div>
       </div>
     );
@@ -189,11 +240,11 @@ const OrderTrackingPage = () => {
           <div className="order-details-row">
             <div className="order-detail">
               <span className="detail-label">Order Date</span>
-              <span className="detail-value">{new Date(order.orderDate).toLocaleString()}</span>
+              <span className="detail-value">{new Date(orderDate).toLocaleString()}</span>
             </div>
             <div className="order-detail">
               <span className="detail-label">Total Amount</span>
-              <span className="detail-value">₹{order.total.toFixed(2)}</span>
+              <span className="detail-value">₹{toMoney(orderTotal)}</span>
             </div>
             <div className="order-detail">
               <span className="detail-label">Payment Method</span>
@@ -238,25 +289,31 @@ const OrderTrackingPage = () => {
         <div className="order-items-card">
           <h3>Order Items</h3>
           <div className="items-list">
-            {order.items.map((item, idx) => (
-              <div key={idx} className="order-item">
-                <div className="item-info">
-                  <div className="item-name">{item.name}</div>
-                  <div className="item-meta">
-                    <span className={`item-veg ${item.isVeg ? 'veg' : 'non-veg'}`}>
-                      {item.isVeg ? '🌱 Vegetarian' : '🍗 Non-Veg'}
-                    </span>
-                    <span className="item-quantity">Quantity: {item.quantity}</span>
+            {orderItems.length === 0 ? (
+              <div className="order-item"><div className="item-info"><div className="item-name">No item details</div></div></div>
+            ) : (
+              orderItems.map((item, idx) => (
+                <div key={idx} className="order-item">
+                  <div className="item-info">
+                    <div className="item-name">{itemName(item)}</div>
+                    <div className="item-meta">
+                      {('isVeg' in (item || {})) && (
+                        <span className={`item-veg ${item.isVeg ? 'veg' : 'non-veg'}`}>
+                          {item.isVeg ? '🌱 Vegetarian' : '🍗 Non-Veg'}
+                        </span>
+                      )}
+                      <span className="item-quantity">Quantity: {itemQty(item)}</span>
+                    </div>
                   </div>
+                  <div className="item-price">₹{toMoney(itemPrice(item) * itemQty(item))}</div>
                 </div>
-                <div className="item-price">₹{(item.price * item.quantity).toFixed(2)}</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
-          
+
           <div className="items-total">
             <span>Total Amount</span>
-            <span>₹{order.total.toFixed(2)}</span>
+            <span>₹{toMoney(orderTotal)}</span>
           </div>
         </div>
 
@@ -297,7 +354,7 @@ const OrderTrackingPage = () => {
           <button onClick={() => navigate('/menu')} className="reorder-btn">
             🔄 Reorder Items
           </button>
-          <button onClick={() => navigate('/')} className="home-btn">
+          <button onClick={() => navigate('/order-type')} className="home-btn">
             🏠 Go to Home
           </button>
         </div>

@@ -330,12 +330,40 @@ const AdminDashboard = () => {
             </div>
             <div className="quick-summary">
               <h3>📊 Order Status Distribution</h3>
-              <div className="status-bars">
-                <div className="status-bar pending-bar" style={{ width: `${(stats.pendingOrders / stats.todayOrders) * 100 || 0}%` }}>Pending: {stats.pendingOrders}</div>
-                <div className="status-bar preparing-bar" style={{ width: `${(stats.preparingOrders / stats.todayOrders) * 100 || 0}%` }}>Preparing: {stats.preparingOrders}</div>
-                <div className="status-bar ready-bar" style={{ width: `${(stats.readyOrders / stats.todayOrders) * 100 || 0}%` }}>Ready: {stats.readyOrders}</div>
-                <div className="status-bar completed-bar" style={{ width: `${(stats.completedOrders / stats.todayOrders) * 100 || 0}%` }}>Completed: {stats.completedOrders}</div>
-              </div>
+              {stats.todayOrders > 0 ? (
+                <>
+                  <div className="status-bars">
+                    {stats.pendingOrders > 0 && (
+                      <div className="status-bar pending-bar" style={{ width: `${(stats.pendingOrders / stats.todayOrders) * 100}%` }}>
+                        {stats.pendingOrders}
+                      </div>
+                    )}
+                    {stats.preparingOrders > 0 && (
+                      <div className="status-bar preparing-bar" style={{ width: `${(stats.preparingOrders / stats.todayOrders) * 100}%` }}>
+                        {stats.preparingOrders}
+                      </div>
+                    )}
+                    {stats.readyOrders > 0 && (
+                      <div className="status-bar ready-bar" style={{ width: `${(stats.readyOrders / stats.todayOrders) * 100}%` }}>
+                        {stats.readyOrders}
+                      </div>
+                    )}
+                    {stats.completedOrders > 0 && (
+                      <div className="status-bar completed-bar" style={{ width: `${(stats.completedOrders / stats.todayOrders) * 100}%` }}>
+                        {stats.completedOrders}
+                      </div>
+                    )}
+                  </div>
+                  <div className="status-legend">
+                    <span className="status-legend-item"><span className="status-legend-dot" style={{ background: '#f59e0b' }}></span>Pending ({stats.pendingOrders})</span>
+                    <span className="status-legend-item"><span className="status-legend-dot" style={{ background: '#3b82f6' }}></span>Preparing ({stats.preparingOrders})</span>
+                    <span className="status-legend-item"><span className="status-legend-dot" style={{ background: '#10b981' }}></span>Ready ({stats.readyOrders})</span>
+                    <span className="status-legend-item"><span className="status-legend-dot" style={{ background: '#6b7280' }}></span>Completed ({stats.completedOrders})</span>
+                  </div>
+                </>
+              ) : (
+                <div className="status-bars empty"></div>
+              )}
             </div>
           </>
         )}

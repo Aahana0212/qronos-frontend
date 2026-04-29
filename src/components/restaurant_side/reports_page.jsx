@@ -34,7 +34,7 @@ const ReportsPage = () => {
   const popularItems = Object.entries(itemsCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
   return (
-    <div className="reports-container">
+    <div className="reports-page-root reports-container">
       <div className="reports-header"><button className="back-btn" onClick={() => navigate('/owner-dashboard')}>← Dashboard</button><h1>Sales Reports</h1></div>
       <div className="date-filters"><button className={`filter-btn ${dateRange === 'today' ? 'active' : ''}`} onClick={() => handleRangeChange('today')}>Today</button><button className={`filter-btn ${dateRange === 'week' ? 'active' : ''}`} onClick={() => handleRangeChange('week')}>This Week</button><button className={`filter-btn ${dateRange === 'month' ? 'active' : ''}`} onClick={() => handleRangeChange('month')}>This Month</button><button className={`filter-btn ${dateRange === 'all' ? 'active' : ''}`} onClick={() => handleRangeChange('all')}>All Time</button></div>
       <div className="stats-grid"><div className="stat-card gold"><h3>Total Revenue</h3><p>₹{totalRevenue.toFixed(2)}</p></div><div className="stat-card"><h3>Total Orders</h3><p>{totalOrders}</p></div><div className="stat-card"><h3>Avg Order Value</h3><p>₹{avgOrderValue.toFixed(2)}</p></div></div>

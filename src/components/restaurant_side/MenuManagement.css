@@ -35,7 +35,7 @@
   margin-bottom: 30px;
 }
 
-.stat-card {
+.mgmt-container .stat-card {
   background: white;
   padding: 20px;
   border-radius: 16px;
@@ -43,13 +43,13 @@
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
-.stat-card h3 {
+.mgmt-container .stat-card h3 {
   font-size: 14px;
   color: #666;
   margin-bottom: 8px;
 }
 
-.stat-card p {
+.mgmt-container .stat-card p {
   font-size: 32px;
   font-weight: 700;
   color: #ff6b35;

@@ -145,7 +145,7 @@
   margin-bottom: 25px;
 }
 
-.stat-card {
+.kitchen-container .stat-card {
   background: rgba(25, 25, 35, 0.55);
   backdrop-filter: blur(10px);
   border-radius: 20px;
@@ -159,7 +159,7 @@
   overflow: hidden;
 }
 
-.stat-card::before {
+.kitchen-container .stat-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -170,31 +170,31 @@
   transition: left 0.5s;
 }
 
-.stat-card:hover::before {
+.kitchen-container .stat-card:hover::before {
   left: 100%;
 }
 
-.stat-card:hover {
+.kitchen-container .stat-card:hover {
   transform: translateY(-4px);
   border-color: rgba(196, 167, 71, 0.4);
   background: rgba(35, 35, 45, 0.65);
 }
 
-.stat-card.new { border-left: 4px solid #f59e0b; }
-.stat-card.preparing { border-left: 4px solid #3b82f6; }
-.stat-card.ready { border-left: 4px solid #10b981; }
+.kitchen-container .stat-card.new { border-left: 4px solid #f59e0b; }
+.kitchen-container .stat-card.preparing { border-left: 4px solid #3b82f6; }
+.kitchen-container .stat-card.ready { border-left: 4px solid #10b981; }
 
-.stat-icon {
+.kitchen-container .stat-icon {
   font-size: 40px;
 }
 
-.stat-info h3 {
+.kitchen-container .stat-info h3 {
   font-size: 32px;
   font-weight: bold;
   color: var(--text-gold);
 }
 
-.stat-info p {
+.kitchen-container .stat-info p {
   font-size: 12px;
   color: rgba(255,255,255,0.6);
 }
