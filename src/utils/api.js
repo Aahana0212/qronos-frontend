@@ -1,5 +1,6 @@
 // src/utils/api.js
-const API_BASE_URL = 'http://localhost:5000/api';
+// Override via REACT_APP_API_URL at build time (e.g. "/api" for nginx reverse proxy on prod).
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
 // Get restaurant ID from URL or localStorage
 export const getRestaurantId = () => {
