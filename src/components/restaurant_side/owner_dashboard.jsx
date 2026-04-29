@@ -98,26 +98,27 @@ const OwnerDashboard = () => {
       const ordersData = await apiGet(`/orders/restaurant/${restaurantId}/today`);
       const menuData = await apiGet(`/menu/restaurant/${restaurantId}/count`);
       const staffData = await apiGet(`/auth/staff/restaurant/${restaurantId}/count`);
-      
-      setStats({
-        todayOrders: ordersData?.todayCount || 0,
-        newOrders: ordersData?.pendingCount || 0,
-        readyOrders: ordersData?.readyCount || 0,
-        totalRevenue: ordersData?.todayRevenue || 0,
-        totalMenuItems: menuData?.count || 0,
-        totalStaff: staffData?.count || 0,
-      });
-      setRecentOrders(ordersData?.recentOrders || []);
+
+      // If a call failed (apiGet wraps errors as {success:false, error:true}), keep prior state
+      // for that slice instead of zeroing it out.
+      const ordersFailed = ordersData && ordersData.error === true;
+      const menuFailed = menuData && menuData.error === true;
+      const staffFailed = staffData && staffData.error === true;
+
+      setStats(prev => ({
+        todayOrders: ordersFailed ? prev.todayOrders : (ordersData?.todayCount || 0),
+        newOrders: ordersFailed ? prev.newOrders : (ordersData?.pendingCount || 0),
+        readyOrders: ordersFailed ? prev.readyOrders : (ordersData?.readyCount || 0),
+        totalRevenue: ordersFailed ? prev.totalRevenue : (ordersData?.todayRevenue || 0),
+        totalMenuItems: menuFailed ? prev.totalMenuItems : (menuData?.count || 0),
+        totalStaff: staffFailed ? prev.totalStaff : (staffData?.count || 0),
+      }));
+      if (!ordersFailed && Array.isArray(ordersData?.recentOrders)) {
+        setRecentOrders(ordersData.recentOrders);
+      }
     } catch (error) {
       console.error('Error fetching dashboard:', error);
-      setStats({
-        todayOrders: 0,
-        newOrders: 0,
-        readyOrders: 0,
-        totalRevenue: 0,
-        totalMenuItems: 0,
-        totalStaff: 0,
-      });
+      // Do not zero out stats on transient failure — keep prior values.
     }
   };
 
@@ -175,23 +176,31 @@ const OwnerDashboard = () => {
   const fetchAllOrders = async () => {
     try {
       const response = await apiGet(`/orders/restaurant/${restaurantId}/all`);
-      console.log('Orders API Response:', response);
-      
-      let orders = [];
+
+      // Skip update on transient failure to avoid wiping the displayed list.
+      if (response && response.error === true) {
+        console.warn('All-orders fetch failed; keeping previous list:', response.message);
+        return;
+      }
+
+      let orders = null;
       if (Array.isArray(response)) {
         orders = response;
-      } else if (response && response.orders) {
+      } else if (response && Array.isArray(response.orders)) {
         orders = response.orders;
-      } else if (response && response.data) {
+      } else if (response && Array.isArray(response.data)) {
         orders = response.data;
-      } else {
-        orders = [];
       }
-      
+
+      if (orders === null) {
+        console.warn('All-orders fetch returned unexpected shape; keeping previous list:', response);
+        return;
+      }
+
       setAllOrders(orders);
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setAllOrders([]);
+      // Keep previous state.
     }
   };
 

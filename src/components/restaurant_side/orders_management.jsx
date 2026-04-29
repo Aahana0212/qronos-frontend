@@ -10,6 +10,7 @@ const OrdersManagement = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedOrderItems, setSelectedOrderItems] = useState([]);
 
@@ -19,7 +20,16 @@ const OrdersManagement = () => {
     if (!silent) setRefreshing(true);
     try {
       const response = await apiGet(`/orders/restaurant/${restaurantId}/all`);
-      let fetchedOrders = [];
+
+      // apiGet wraps fetch errors as { success:false, error:true } — treat that as a transient
+      // failure and preserve the currently displayed orders instead of wiping them.
+      if (response && response.error === true) {
+        console.warn('Orders fetch returned error wrapper; keeping previous orders:', response.message);
+        setLoadError(response.message || 'Failed to fetch orders');
+        return;
+      }
+
+      let fetchedOrders = null;
       if (Array.isArray(response)) {
         fetchedOrders = response;
       } else if (response && Array.isArray(response.orders)) {
@@ -27,11 +37,21 @@ const OrdersManagement = () => {
       } else if (response && Array.isArray(response.data)) {
         fetchedOrders = response.data;
       }
+
+      if (fetchedOrders === null) {
+        // Unexpected shape — preserve previous orders.
+        console.warn('Orders fetch returned unexpected shape; keeping previous orders:', response);
+        setLoadError('Server returned unexpected response');
+        return;
+      }
+
       setOrders(fetchedOrders);
+      setLoadError(null);
       setLastUpdated(new Date());
     } catch (error) {
       console.error('Error fetching orders:', error);
-      setOrders([]);
+      setLoadError(error.message || 'Network error');
+      // Do not clear orders here — keep what is on screen.
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -124,6 +144,14 @@ const OrdersManagement = () => {
       <div style={{ marginBottom: 12, color: '#888', fontSize: 12 }}>
         Showing orders for restaurant ID: <strong>{restaurantId}</strong>
       </div>
+      {loadError && (
+        <div style={{
+          marginBottom: 12, padding: '10px 14px', borderRadius: 8,
+          background: '#fff4e5', color: '#8a3b00', fontSize: 13
+        }}>
+          ⚠️ Could not refresh orders: {loadError}. Showing last known data.
+        </div>
+      )}
 
       <div className="orders-stats">
         <div className="stat-card"><h3>Total Orders</h3><p>{stats.total}</p></div>
