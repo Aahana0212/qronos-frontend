@@ -1,36 +1,73 @@
 // src/components/customer_side/QRScanPage.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { apiGet } from '../../utils/api';
 import './QRScanPage.css';
 
 const QRScanPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Get orderType from navigation state (passed from OrderTypePage)
+
+  // orderType passed from OrderTypePage
   const orderType = location.state?.orderType || 'dinein';
   const userId = location.state?.userId || localStorage.getItem('qronos_user_id');
-  
+
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState(null);
   const [manualTable, setManualTable] = useState('');
+  const [manualRestaurantId, setManualRestaurantId] = useState('');
   const [showManualInput, setShowManualInput] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [scannedTable, setScannedTable] = useState(null);
+  const [confirmedRestaurantId, setConfirmedRestaurantId] = useState(null);
+  const [confirmedRestaurantName, setConfirmedRestaurantName] = useState('');
+  const [restaurants, setRestaurants] = useState([]);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
 
-  // Restaurant id comes from the QR-encoded URL (?r=N or ?restaurantId=N).
-  // No fallback — without a real QR/url, the dine-in flow has no restaurant.
-  const getRestaurantId = () => {
+  // The physical table QR encodes a URL like
+  // /scan-qr?r=<restaurantId>&table=<tableNumber>
+  // so when the customer's phone opens it, both fields are auto-populated.
+  const getUrlParams = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('restaurantId') || params.get('r') || null;
+    return {
+      restaurantId: params.get('restaurantId') || params.get('r') || null,
+      tableNumber: params.get('table') || params.get('t') || null,
+    };
   };
 
-  // Simulate QR scan
+  // Load registered restaurants on mount so the manual flow can pick one,
+  // and so the QR-driven flow can resolve the restaurant name from its id.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoadingRestaurants(true);
+      const res = await apiGet('/restaurants');
+      if (cancelled) return;
+      const list = Array.isArray(res) ? res : res?.restaurants || [];
+      setRestaurants(list);
+      setLoadingRestaurants(false);
+
+      // If both restaurant + table came in via the URL (real QR scan),
+      // skip the scanner UI and jump straight to the confirm screen.
+      const { restaurantId: urlRid, tableNumber: urlTable } = getUrlParams();
+      if (urlRid && urlTable) {
+        const r = list.find((x) => String(x.id) === String(urlRid));
+        setConfirmedRestaurantId(urlRid);
+        setConfirmedRestaurantName(r?.name || '');
+        setScannedTable(parseInt(urlTable, 10) || urlTable);
+        setShowConfirm(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // "Start Scanning" — short pretend-scan animation that uses URL params if
+  // present, or surfaces a clear error otherwise (so users know to tap Manual).
   const startScan = () => {
-    const rid = getRestaurantId();
+    const { restaurantId: rid, tableNumber: urlTable } = getUrlParams();
     if (!rid) {
       setError(
-        'No restaurant detected. Please scan a real table QR, or open the QR link from the restaurant.'
+        'No restaurant detected from QR. Tap "Enter Manually" below to pick a restaurant + table number.'
       );
       return;
     }
@@ -38,44 +75,57 @@ const QRScanPage = () => {
     setError(null);
 
     setTimeout(() => {
-      setScannedTable(Math.floor(Math.random() * 20) + 1);
+      const r = restaurants.find((x) => String(x.id) === String(rid));
+      setConfirmedRestaurantId(rid);
+      setConfirmedRestaurantName(r?.name || '');
+      setScannedTable(
+        urlTable
+          ? (parseInt(urlTable, 10) || urlTable)
+          : Math.floor(Math.random() * 20) + 1
+      );
       setShowConfirm(true);
       setScanning(false);
-    }, 2000);
+    }, 1500);
   };
 
   const handleManualSubmit = () => {
-    if (!getRestaurantId()) {
-      setError(
-        'No restaurant detected. Please scan a real table QR, or open the QR link from the restaurant.'
-      );
+    const rid = getUrlParams().restaurantId || manualRestaurantId;
+    if (!rid) {
+      setError('Please select a restaurant.');
       return;
     }
-    if (manualTable && manualTable > 0 && manualTable <= 50) {
-      setScannedTable(parseInt(manualTable));
-      setShowConfirm(true);
-      setError(null);
-    } else {
-      setError('Please enter a valid table number (1-50)');
+    const tableNum = parseInt(manualTable, 10);
+    if (!tableNum || tableNum < 1 || tableNum > 50) {
+      setError('Please enter a valid table number (1-50).');
+      return;
     }
+    const r = restaurants.find((x) => String(x.id) === String(rid));
+    setConfirmedRestaurantId(rid);
+    setConfirmedRestaurantName(r?.name || '');
+    setScannedTable(tableNum);
+    setShowConfirm(true);
+    setError(null);
   };
 
   const confirmTable = () => {
-    const restaurantId = getRestaurantId();
-    if (!restaurantId) {
-      setError('Restaurant not identified. Please rescan the QR.');
+    if (!confirmedRestaurantId) {
+      setError('Restaurant not identified. Please go back and pick one.');
       setShowConfirm(false);
       return;
     }
     localStorage.setItem('qronos_table', String(scannedTable));
     localStorage.setItem('qronos_order_type', 'dinein');
-    localStorage.setItem('qronos_restaurant_id', String(restaurantId));
+    localStorage.setItem('qronos_restaurant_id', String(confirmedRestaurantId));
+    if (confirmedRestaurantName) {
+      localStorage.setItem('qronos_restaurant_name', confirmedRestaurantName);
+    }
 
     navigate('/menu', {
       state: {
         orderType: 'dinein',
         tableNumber: scannedTable,
-        restaurantId: restaurantId,
+        restaurantId: confirmedRestaurantId,
+        restaurantName: confirmedRestaurantName,
         userId: userId,
       },
     });
@@ -85,6 +135,8 @@ const QRScanPage = () => {
     setShowConfirm(false);
     setScannedTable(null);
     setManualTable('');
+    setConfirmedRestaurantId(null);
+    setConfirmedRestaurantName('');
   };
 
   // ========== CONFIRMATION SCREEN ==========
@@ -93,16 +145,21 @@ const QRScanPage = () => {
       <div className="qrscan-container">
         <div className="qrscan-card">
           <button className="back-btn" onClick={cancelTable}>← Back</button>
-          
+
           <div className="confirm-header">
             <div className="success-icon">✓</div>
             <h1>Table Verified!</h1>
-            <p>Please confirm your table details</p>
+            <p>Please confirm your details</p>
           </div>
-          
+
           <div className="table-card">
+            {confirmedRestaurantName && (
+              <div className="confirm-restaurant">
+                🍽️ <strong>{confirmedRestaurantName}</strong>
+              </div>
+            )}
             <div className="table-number-large">Table {scannedTable}</div>
-            
+
             <div className="table-info-badges">
               <div className="info-badge">
                 <span className="badge-icon">📍</span>
@@ -122,23 +179,24 @@ const QRScanPage = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="confirm-actions">
             <button className="confirm-btn" onClick={confirmTable}>✓ Confirm & Continue</button>
-            <button className="cancel-btn" onClick={cancelTable}>✗ Cancel & Rescan</button>
+            <button className="cancel-btn" onClick={cancelTable}>✗ Cancel</button>
           </div>
-          
-          <p className="help-text">💡 If this is not your table, please scan the correct QR code</p>
+
+          <p className="help-text">💡 If this is not your table, please go back and re-enter the details.</p>
         </div>
       </div>
     );
   }
 
   // ========== MAIN SCREEN ==========
+  const hasUrlRid = !!getUrlParams().restaurantId;
+
   return (
     <div className="qrscan-container">
       <div className="qrscan-card">
-        {/* Back Button */}
         <button className="back-to-home" onClick={() => navigate('/order-type')}>
           ← Back
         </button>
@@ -163,43 +221,63 @@ const QRScanPage = () => {
                   <p>{scanning ? 'Scanning...' : 'Position QR code inside the frame'}</p>
                 </div>
               </div>
-              
+
               <button className="scan-btn" onClick={startScan} disabled={scanning}>
                 {scanning ? (
-                  <>
-                    <span className="spinner"></span>
-                    Scanning...
-                  </>
+                  <><span className="spinner"></span>Scanning...</>
                 ) : (
-                  <>
-                    <span>🔍</span> Start Scanning
-                  </>
+                  <><span>🔍</span> Start Scanning</>
                 )}
               </button>
+
+              {error && <div className="error-message-manual" style={{ marginTop: 14 }}>{error}</div>}
             </div>
 
-            <div className="divider">
-              <span>OR</span>
-            </div>
+            <div className="divider"><span>OR</span></div>
 
-            <button className="manual-btn" onClick={() => setShowManualInput(true)}>
-              <span>✏️</span> Enter Table Number Manually
+            <button className="manual-btn" onClick={() => { setShowManualInput(true); setError(null); }}>
+              <span>✏️</span> Enter Manually
             </button>
           </>
         ) : (
           <div className="manual-input-section">
-            <button className="back-btn-manual" onClick={() => setShowManualInput(false)}>
+            <button className="back-btn-manual" onClick={() => { setShowManualInput(false); setError(null); }}>
               ← Back to Scanner
             </button>
-            
+
             <div className="manual-form-container">
               <div className="manual-icon-wrapper">
                 <div className="manual-icon">🍽️</div>
               </div>
-              
-              <h3 className="manual-title">Enter Table Number</h3>
-              <p className="manual-subtitle">Ask your server for your table number</p>
-              
+
+              <h3 className="manual-title">Enter Restaurant & Table</h3>
+              <p className="manual-subtitle">
+                {hasUrlRid
+                  ? 'Restaurant detected from QR. Just enter your table number.'
+                  : 'Pick the restaurant you\'re at, then your table number.'}
+              </p>
+
+              {/* Restaurant picker (hidden if URL already supplied one) */}
+              {!hasUrlRid && (
+                <div className="input-wrapper">
+                  <select
+                    className="table-input-field"
+                    value={manualRestaurantId}
+                    onChange={(e) => setManualRestaurantId(e.target.value)}
+                  >
+                    <option value="">
+                      {loadingRestaurants ? 'Loading restaurants...' : 'Select restaurant'}
+                    </option>
+                    {restaurants.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}{r.cuisine_type ? ` — ${r.cuisine_type}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="input-hint">Choose your restaurant</span>
+                </div>
+              )}
+
               <div className="input-wrapper">
                 <input
                   type="number"
@@ -213,9 +291,9 @@ const QRScanPage = () => {
                 />
                 <span className="input-hint">Table number (1-50)</span>
               </div>
-              
+
               {error && <div className="error-message-manual">{error}</div>}
-              
+
               <button className="submit-btn-manual" onClick={handleManualSubmit}>
                 Continue to Menu <span className="arrow-icon">→</span>
               </button>

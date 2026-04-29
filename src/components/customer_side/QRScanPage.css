@@ -480,6 +480,42 @@ button:disabled {
   font-weight: normal;
 }
 
+/* Select element variant of .table-input-field — same pill, custom gold arrow. */
+select.table-input-field {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M0 0l6 8 6-8z' fill='%23c4a747'/></svg>");
+  background-repeat: no-repeat;
+  background-position: calc(100% - 22px) center;
+  padding-right: 50px;
+  cursor: pointer;
+  text-align-last: center;
+}
+select.table-input-field option {
+  background: #15151f;
+  color: #ffffff;
+  text-align: left;
+}
+
+.confirm-restaurant {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 8px 16px;
+  background: rgba(196, 167, 71, 0.10);
+  border: 1px solid rgba(196, 167, 71, 0.30);
+  border-radius: 30px;
+  color: #c4a747;
+  font-size: 14px;
+}
+.confirm-restaurant strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
 .input-hint {
   display: block;
   color: rgba(255, 255, 255, 0.4);
