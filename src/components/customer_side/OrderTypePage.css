@@ -1,0 +1,303 @@
+/* OrderTypePage.css - Professional Glassmorphism */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.order-type-container {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), 
+    url('https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=1920&h=1080&dpr=2');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px 40px;
+}
+
+.order-type-card {
+  background: rgba(15, 15, 25, 0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(196, 167, 71, 0.2);
+  border-radius: 32px;
+  padding: 50px 40px;
+  max-width: 1200px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+.order-type-header h1 {
+  background: linear-gradient(135deg, #c4a747, #e6c866);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 42px;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.order-type-header p {
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 50px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.order-options {
+  display: flex;
+  gap: 30px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* CARDS - OPAGUE TRANSPARENT */
+.order-option {
+  background: rgba(20, 20, 30, 0.35);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(196, 167, 71, 0.2);
+  border-radius: 24px;
+  padding: 40px 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  width: 320px;
+  position: relative;
+  overflow: hidden;
+}
+
+.order-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(196,167,71,0.08), transparent);
+  transition: left 0.6s;
+}
+
+.order-option:hover::before {
+  left: 100%;
+}
+
+.order-option:hover {
+  transform: translateY(-12px);
+  border-color: #c4a747;
+  background: rgba(35, 35, 45, 0.45);
+  box-shadow: 0 25px 45px rgba(0,0,0,0.4);
+}
+
+/* Image Styles - Fixed (No white background) */
+.option-image {
+  margin-bottom: 20px;
+  transition: transform 0.3s;
+}
+
+.option-image img {
+  width: 65px;
+  height: 65px;
+  transition: all 0.3s;
+}
+
+.order-option:hover .option-image img {
+  transform: scale(1.1);
+}
+
+.order-option h3 {
+  background: linear-gradient(135deg, #c4a747, #e6c866);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 24px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.order-option p {
+  color: rgba(255,255,255,0.7);
+  font-size: 13px;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.option-features {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.option-features span {
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  background: rgba(196,167,71,0.1);
+  border: 1px solid rgba(196,167,71,0.15);
+  padding: 4px 12px;
+  border-radius: 30px;
+  transition: all 0.3s;
+}
+
+.order-option:hover .option-features span {
+  background: rgba(196,167,71,0.2);
+  border-color: rgba(196,167,71,0.3);
+}
+
+.option-tag {
+  display: inline-block;
+  background: linear-gradient(135deg, #c4a747, #e6c866);
+  color: black;
+  padding: 6px 18px;
+  border-radius: 30px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Address Form Styles */
+.address-form {
+  text-align: center;
+  padding: 20px;
+}
+
+.address-icon {
+  font-size: 56px;
+  margin-bottom: 15px;
+}
+
+.address-form h2 {
+  background: linear-gradient(135deg, #c4a747, #e6c866);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 32px;
+  margin-bottom: 10px;
+}
+
+.address-subtitle {
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 30px;
+  font-size: 14px;
+}
+
+.address-form textarea {
+  width: 100%;
+  max-width: 500px;
+  padding: 16px;
+  background: rgba(30, 30, 40, 0.6);
+  border: 1px solid rgba(196, 167, 71, 0.3);
+  border-radius: 16px;
+  color: white;
+  font-size: 14px;
+  resize: vertical;
+  margin-bottom: 25px;
+  font-family: inherit;
+  transition: all 0.3s;
+}
+
+.address-form textarea:focus {
+  outline: none;
+  border-color: #c4a747;
+  background: rgba(40, 40, 50, 0.7);
+}
+
+.submit-address {
+  background: linear-gradient(135deg, #c4a747, #e6c866);
+  border: none;
+  color: black;
+  padding: 14px 45px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.submit-address:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(196, 167, 71, 0.3);
+}
+
+.back-btn {
+  background: transparent;
+  border: none;
+  color: #c4a747;
+  font-size: 14px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  opacity: 0.8;
+  transform: translateX(-5px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .order-type-card {
+    padding: 30px 20px;
+  }
+  
+  .order-type-header h1 {
+    font-size: 32px;
+  }
+  
+  .order-options {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .order-option {
+    width: 100%;
+    max-width: 340px;
+    padding: 30px 20px;
+  }
+  
+  .option-image img {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .order-option h3 {
+    font-size: 22px;
+  }
+  
+  .address-form textarea {
+    max-width: 100%;
+  }
+}
+
+
+/* Add this to your existing OrderTypePage.css */
+
+.order-type-back-btn {
+  background: rgba(196, 167, 71, 0.12);
+  border: 1px solid rgba(196, 167, 71, 0.3);
+  padding: 8px 20px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #e6c866;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.order-type-back-btn:hover {
+  background: rgba(196, 167, 71, 0.25);
+  transform: translateX(-3px);
+}

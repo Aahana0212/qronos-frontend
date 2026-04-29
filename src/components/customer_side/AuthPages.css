@@ -1,0 +1,247 @@
+/* AuthPages.css - Glassmorphism for Customer Login/Register */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.auth-page {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), 
+    url('https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1920&h=1080&fit=crop');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px 40px;
+  position: relative;
+}
+
+/* Glassmorphism Card */
+.auth-card {
+  background: rgba(15, 18, 25, 0.45);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 28px;
+  padding: 45px 40px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 25px 45px rgba(0, 0, 0, 0.25);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 35px;
+}
+
+.auth-header h2 {
+  color: #d4af37;
+  font-size: 32px;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.auth-header p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+}
+
+/* Error Message */
+.auth-error {
+  background: rgba(231, 76, 60, 0.15);
+  border: 1px solid rgba(231, 76, 60, 0.4);
+  color: #e74c3c;
+  padding: 12px 16px;
+  border-radius: 14px;
+  margin-bottom: 25px;
+  text-align: center;
+  font-size: 14px;
+  backdrop-filter: blur(4px);
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 22px;
+}
+
+.form-group label {
+  display: block;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(25, 28, 38, 0.6);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 14px;
+  color: #ffffff;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #d4af37;
+  background: rgba(35, 38, 48, 0.7);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Options Row */
+.form-row-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-label:hover {
+  color: #d4af37;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #d4af37;
+}
+
+.forgot-btn {
+  background: none;
+  border: none;
+  color: #d4af37;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+
+.forgot-btn:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* Login Button */
+.auth-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: linear-gradient(105deg, #d4af37, #f5e6a3);
+  border: none;
+  border-radius: 50px;
+  color: #121212;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.auth-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(212, 175, 55, 0.3);
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.auth-footer {
+  text-align: center;
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+}
+
+.auth-footer span {
+  color: #d4af37;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  padding: 4px 8px;
+  border-radius: 20px;
+}
+
+.auth-footer span:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* Back Button - Glassmorphism */
+.auth-back-btn {
+  position: absolute;
+  top: 30px;
+  left: 30px;
+  background: rgba(212, 175, 55, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 8px 22px;
+  border-radius: 40px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #d4af37;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 20;
+}
+
+.auth-back-btn:hover {
+  background: rgba(212, 175, 55, 0.2);
+  transform: translateX(-4px);
+  border-color: rgba(212, 175, 55, 0.5);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .auth-page {
+    padding: 80px 16px 30px;
+    align-items: flex-start;
+  }
+  
+  .auth-card {
+    padding: 32px 24px;
+    margin-top: 20px;
+  }
+  
+  .auth-header h2 {
+    font-size: 28px;
+  }
+  
+  .auth-back-btn {
+    position: static;
+    margin-bottom: 20px;
+    align-self: flex-start;
+  }
+  
+  .form-row-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}

@@ -1,0 +1,405 @@
+/* AuthPages.css - Professional Black & Gold Theme */
+
+.auth-container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px 40px;
+}
+
+.auth-card {
+  background: var(--bg-card);
+  border: 2px solid var(--border-gold);
+  border-radius: 24px;
+  padding: 50px 40px;
+  max-width: 650px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-header h2 {
+  color: var(--text-gold);
+  font-size: 32px;
+  margin-bottom: 10px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.auth-header p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.auth-error {
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid #e74c3c;
+  color: #e74c3c;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-success {
+  background: rgba(46, 204, 113, 0.1);
+  border: 1px solid #2ecc71;
+  color: #2ecc71;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(196, 167, 71, 0.15);
+}
+
+.form-section h3 {
+  color: var(--text-gold);
+  font-size: 18px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* Form Groups */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(196, 167, 71, 0.3);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--border-gold);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group input::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.form-group small {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 11px;
+  margin-top: 5px;
+}
+
+/* Form Row (2 columns) */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Select dropdown */
+select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(196, 167, 71, 0.3);
+  padding: 12px 16px;
+  border-radius: 12px;
+  color: white;
+  width: 100%;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+select option {
+  background: #1a1a1a;
+  color: white;
+}
+
+/* Role Selection */
+.role-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.role-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(196, 167, 71, 0.3);
+  border-radius: 16px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+  text-align: center;
+  position: relative;
+}
+
+.role-card input {
+  position: absolute;
+  opacity: 0;
+}
+
+.role-card.active {
+  border-color: var(--border-gold);
+  background: rgba(196, 167, 71, 0.1);
+  transform: translateY(-2px);
+}
+
+.role-card:hover {
+  border-color: var(--border-gold);
+  transform: translateY(-2px);
+}
+
+.role-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.role-name {
+  display: block;
+  color: var(--text-gold);
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.role-desc {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+/* Auth Button */
+.auth-btn {
+  width: 100%;
+  padding: 14px 20px;
+  background: transparent;
+  border: 2px solid var(--border-gold);
+  border-radius: 40px;
+  color: var(--text-gold);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+  letter-spacing: 1px;
+}
+
+.auth-btn:hover:not(:disabled) {
+  background: var(--border-gold);
+  color: var(--bg-primary);
+  transform: translateY(-2px);
+}
+
+.auth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Auth Footer */
+.auth-footer {
+  text-align: center;
+  border-top: 1px solid rgba(196, 167, 71, 0.2);
+  padding-top: 20px;
+  margin-top: 20px;
+}
+
+.auth-footer p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.auth-footer span {
+  color: var(--text-gold);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.auth-footer span:hover {
+  opacity: 0.8;
+}
+
+.forgot-btn {
+  color: var(--text-secondary) !important;
+  text-decoration: none !important;
+  font-size: 12px !important;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .auth-card {
+    padding: 30px 20px;
+  }
+  
+  .auth-header h2 {
+    font-size: 28px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .role-options {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .auth-container {
+    padding: 80px 16px 40px;
+  }
+}
+
+.auth-container {
+  min-height: 100vh;
+  background-image: linear-gradient(rgba(0,0,0,0.75), rgba(0,0,0,0.88)), 
+    url('https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 20px 40px;
+}
+
+/* Role Selection for Login Page */
+.role-options-login {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.role-chip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(196, 167, 71, 0.3);
+  border-radius: 40px;
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.role-chip input {
+  display: none;
+}
+
+.role-chip.active {
+  background: rgba(196, 167, 71, 0.15);
+  border-color: var(--border-gold);
+}
+
+.role-chip .role-icon {
+  font-size: 18px;
+}
+
+.role-chip .role-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.role-chip:hover {
+  border-color: var(--border-gold);
+  background: rgba(196, 167, 71, 0.1);
+}
+
+/* Form Row Options */
+.form-row-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.checkbox-label input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--border-gold);
+}
+
+.forgot-btn {
+  background: none;
+  border: none;
+  color: var(--text-gold);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.forgot-btn:hover {
+  opacity: 0.8;
+}
+
+
+/* Add to AuthPages.css */
+.back-button {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  color: #f59e0b;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.back-button:hover {
+  background: rgba(245, 158, 11, 0.1);
+  transform: translateX(-2px);
+}
+
+.auth-card {
+  position: relative; /* Important for back button positioning */
+}
+
+
