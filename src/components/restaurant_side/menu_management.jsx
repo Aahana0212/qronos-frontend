@@ -2,25 +2,32 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './MenuManagement.css';
 
+const API_BASE = 'http://localhost:5000/api';
+
+const emptyForm = {
+  name: '',
+  description: '',
+  price: '',
+  takeaway_price: '',
+  category_id: '',
+  is_veg: true,
+  is_popular: false,
+  is_available: true,
+  preparation_time: 15,
+  image_url: ''
+};
+
 const MenuManagement = () => {
   const navigate = useNavigate();
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    takeaway_price: '',
-    category_id: '',
-    is_veg: true,
-    is_popular: false,
-    is_available: true,
-    preparation_time: 15,
-    image_url: ''
-  });
+  const [formData, setFormData] = useState(emptyForm);
+
+  const restaurantId = localStorage.getItem('restaurantId') || '1';
 
   useEffect(() => {
     loadMenuItems();
@@ -28,20 +35,18 @@ const MenuManagement = () => {
   }, []);
 
   const loadMenuItems = async () => {
+    setLoading(true);
     try {
-      const restaurantId = localStorage.getItem('restaurantId') || 1;
-      const response = await fetch(`http://localhost:5000/api/restaurants/${restaurantId}/menu`);
+      // `all=1` returns every item including unavailable ones, so the manager can see them all.
+      const response = await fetch(
+        `${API_BASE}/restaurants/${restaurantId}/menu?all=1`
+      );
       const data = await response.json();
-      if (data.success) {
-        setMenuItems(data.menuItems);
-      }
+      const items = Array.isArray(data) ? data : data.menuItems || [];
+      setMenuItems(items);
     } catch (error) {
       console.error('Error loading menu:', error);
-      // Demo data
-      setMenuItems([
-        { id: 1, name: 'Margherita Pizza', description: 'Classic cheese & tomato sauce', price: 299, takeaway_price: 269, category_id: 2, is_veg: true, is_popular: true, is_available: true, preparation_time: 12 },
-        { id: 2, name: 'Pepperoni Pizza', description: 'Spicy pepperoni with extra cheese', price: 399, takeaway_price: 359, category_id: 2, is_veg: false, is_popular: true, is_available: true, preparation_time: 15 },
-      ]);
+      setMenuItems([]);
     } finally {
       setLoading(false);
     }
@@ -49,18 +54,16 @@ const MenuManagement = () => {
 
   const loadCategories = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/restaurants/categories');
+      const response = await fetch(`${API_BASE}/restaurants/categories`);
       const data = await response.json();
-      if (data.success) {
+      if (data.success && Array.isArray(data.categories)) {
         setCategories(data.categories);
+      } else {
+        setCategories([]);
       }
     } catch (error) {
-      setCategories([
-        { id: 1, name: 'Starter' },
-        { id: 2, name: 'Main Course' },
-        { id: 3, name: 'Desserts' },
-        { id: 4, name: 'Beverages' },
-      ]);
+      console.error('Error loading categories:', error);
+      setCategories([]);
     }
   };
 
@@ -72,60 +75,113 @@ const MenuManagement = () => {
     });
   };
 
+  const buildPayload = () => ({
+    restaurant_id: parseInt(restaurantId, 10),
+    name: formData.name,
+    description: formData.description || null,
+    price: parseFloat(formData.price),
+    takeaway_price: formData.takeaway_price ? parseFloat(formData.takeaway_price) : null,
+    category_id: formData.category_id ? parseInt(formData.category_id, 10) : null,
+    is_veg: formData.is_veg ? 1 : 0,
+    is_popular: formData.is_popular ? 1 : 0,
+    is_available: formData.is_available ? 1 : 0,
+    preparation_time: parseInt(formData.preparation_time, 10) || 15,
+    image_url: formData.image_url || null
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    const newItem = {
-      ...formData,
-      id: editingItem ? editingItem.id : Date.now(),
-      price: parseFloat(formData.price),
-      takeaway_price: parseFloat(formData.takeaway_price),
-      preparation_time: parseInt(formData.preparation_time)
-    };
+    setSaving(true);
+    try {
+      const payload = buildPayload();
+      const url = editingItem
+        ? `${API_BASE}/menu/${editingItem.id}`
+        : `${API_BASE}/menu`;
+      const method = editingItem ? 'PUT' : 'POST';
 
-    if (editingItem) {
-      // Update existing item
-      setMenuItems(menuItems.map(item => item.id === editingItem.id ? newItem : item));
-    } else {
-      // Add new item
-      setMenuItems([...menuItems, newItem]);
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      await loadMenuItems();
+      closeModal();
+    } catch (error) {
+      console.error('Error saving menu item:', error);
+      alert(`Failed to save item: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
+  };
 
+  const closeModal = () => {
     setShowModal(false);
     setEditingItem(null);
-    setFormData({
-      name: '', description: '', price: '', takeaway_price: '', category_id: '',
-      is_veg: true, is_popular: false, is_available: true, preparation_time: 15, image_url: ''
-    });
+    setFormData(emptyForm);
   };
 
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      name: item.name,
+      name: item.name || '',
       description: item.description || '',
-      price: item.price,
-      takeaway_price: item.takeaway_price || '',
-      category_id: item.category_id,
-      is_veg: item.is_veg,
-      is_popular: item.is_popular,
-      is_available: item.is_available,
-      preparation_time: item.preparation_time,
-      image_url: item.image_url || ''
+      price: item.price ?? '',
+      takeaway_price: item.takeaway_price ?? '',
+      category_id: item.category_id ?? '',
+      is_veg: !!item.is_veg,
+      is_popular: !!item.is_popular,
+      is_available: item.is_available !== 0,
+      preparation_time: item.preparation_time ?? 15,
+      image_url: typeof item.image_url === 'string' ? item.image_url : ''
     });
     setShowModal(true);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this item?')) {
-      setMenuItems(menuItems.filter(item => item.id !== id));
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    try {
+      const res = await fetch(`${API_BASE}/menu/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+      await loadMenuItems();
+    } catch (error) {
+      console.error('Error deleting menu item:', error);
+      alert(`Failed to delete item: ${error.message}`);
     }
   };
 
-  const toggleAvailability = (id) => {
-    setMenuItems(menuItems.map(item =>
-      item.id === id ? { ...item, is_available: !item.is_available } : item
-    ));
+  const toggleAvailability = async (item) => {
+    try {
+      const payload = {
+        restaurant_id: item.restaurant_id,
+        name: item.name,
+        description: item.description ?? null,
+        price: item.price,
+        takeaway_price: item.takeaway_price ?? null,
+        category_id: item.category_id ?? null,
+        is_veg: item.is_veg ? 1 : 0,
+        is_popular: item.is_popular ? 1 : 0,
+        is_available: item.is_available ? 0 : 1,
+        preparation_time: item.preparation_time ?? 15,
+        image_url: typeof item.image_url === 'string' ? item.image_url : null
+      };
+      const res = await fetch(`${API_BASE}/menu/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || `HTTP ${res.status}`);
+      await loadMenuItems();
+    } catch (error) {
+      console.error('Error toggling availability:', error);
+      alert(`Failed to update item: ${error.message}`);
+    }
   };
 
   if (loading) return <div className="mgmt-loading">Loading menu...</div>;
@@ -135,7 +191,7 @@ const MenuManagement = () => {
       <div className="mgmt-header">
         <button className="back-btn" onClick={() => navigate('/owner-dashboard')}>← Dashboard</button>
         <h1>Menu Management</h1>
-        <button className="add-btn" onClick={() => setShowModal(true)}>+ Add New Item</button>
+        <button className="add-btn" onClick={() => { setEditingItem(null); setFormData(emptyForm); setShowModal(true); }}>+ Add New Item</button>
       </div>
 
       <div className="mgmt-stats">
@@ -168,36 +224,44 @@ const MenuManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {menuItems.map(item => (
-              <tr key={item.id}>
-                <td><div className="item-emoji">{item.image_url || (item.is_veg ? '🥗' : '🍔')}</div></td>
-                <td><strong>{item.name}</strong><br/><small>{item.description?.substring(0, 30)}</small></td>
-                <td>{categories.find(c => c.id === item.category_id)?.name || 'Other'}</td>
-                <td>₹{item.price}</td>
-                <td>{item.takeaway_price ? `₹${item.takeaway_price}` : '-'}</td>
-                <td><span className={`veg-badge ${item.is_veg ? 'veg' : 'non-veg'}`}>{item.is_veg ? 'Veg' : 'Non-Veg'}</span></td>
-                <td>
-                  <button className={`status-toggle ${item.is_available ? 'active' : ''}`} onClick={() => toggleAvailability(item.id)}>
-                    {item.is_available ? 'Available' : 'Out of Stock'}
-                  </button>
-                </td>
-                <td>
-                  <button className="edit-action" onClick={() => handleEdit(item)}>✏️</button>
-                  <button className="delete-action" onClick={() => handleDelete(item.id)}>🗑️</button>
+            {menuItems.length === 0 ? (
+              <tr>
+                <td colSpan="8" style={{ textAlign: 'center', padding: '30px' }}>
+                  No menu items yet. Click "+ Add New Item" to create one.
                 </td>
               </tr>
-            ))}
+            ) : (
+              menuItems.map(item => (
+                <tr key={item.id}>
+                  <td><div className="item-emoji">{(typeof item.image_url === 'string' && item.image_url) || (item.is_veg ? '🥗' : '🍔')}</div></td>
+                  <td><strong>{item.name}</strong><br/><small>{item.description?.substring(0, 30)}</small></td>
+                  <td>{categories.find(c => c.id === item.category_id)?.name || 'Other'}</td>
+                  <td>₹{item.price}</td>
+                  <td>{item.takeaway_price ? `₹${item.takeaway_price}` : '-'}</td>
+                  <td><span className={`veg-badge ${item.is_veg ? 'veg' : 'non-veg'}`}>{item.is_veg ? 'Veg' : 'Non-Veg'}</span></td>
+                  <td>
+                    <button className={`status-toggle ${item.is_available ? 'active' : ''}`} onClick={() => toggleAvailability(item)}>
+                      {item.is_available ? 'Available' : 'Out of Stock'}
+                    </button>
+                  </td>
+                  <td>
+                    <button className="edit-action" onClick={() => handleEdit(item)}>✏️</button>
+                    <button className="delete-action" onClick={() => handleDelete(item.id)}>🗑️</button>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
       {/* Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingItem ? 'Edit Item' : 'Add New Item'}</h2>
-              <button className="close-modal" onClick={() => setShowModal(false)}>✕</button>
+              <button className="close-modal" onClick={closeModal}>✕</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="form-row">
@@ -206,8 +270,8 @@ const MenuManagement = () => {
                   <input type="text" name="name" value={formData.name} onChange={handleInputChange} required />
                 </div>
                 <div className="form-group">
-                  <label>Category *</label>
-                  <select name="category_id" value={formData.category_id} onChange={handleInputChange} required>
+                  <label>Category</label>
+                  <select name="category_id" value={formData.category_id} onChange={handleInputChange}>
                     <option value="">Select Category</option>
                     {categories.map(cat => (
                       <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -248,8 +312,10 @@ const MenuManagement = () => {
                 </label>
               </div>
               <div className="modal-actions">
-                <button type="submit" className="save-btn">{editingItem ? 'Update' : 'Add'} Item</button>
-                <button type="button" className="cancel-btn" onClick={() => setShowModal(false)}>Cancel</button>
+                <button type="submit" className="save-btn" disabled={saving}>
+                  {saving ? 'Saving...' : (editingItem ? 'Update' : 'Add') + ' Item'}
+                </button>
+                <button type="button" className="cancel-btn" onClick={closeModal}>Cancel</button>
               </div>
             </form>
           </div>

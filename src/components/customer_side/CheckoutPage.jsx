@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode';
+import { apiPost, getRestaurantId } from '../../utils/api';
 import './CheckoutPage.css';
 
 const CheckoutPage = () => {
@@ -139,42 +140,68 @@ const CheckoutPage = () => {
   };
 
   const placeOrder = async () => {
+    const restaurantId = getRestaurantId();
+    const user = JSON.parse(localStorage.getItem('qronos_user') || '{}');
+
+    const subtotal = cartTotal - (cartTotal * 0.05) - (orderType === 'delivery' ? 40 : 0);
+    const deliveryFee = orderType === 'delivery' ? 40 : 0;
+    const tax = cartTotal * 0.05;
+
     const orderData = {
-      items: cart,
-      subtotal: cartTotal - (cartTotal * 0.05) - (orderType === 'delivery' ? 40 : 0),
-      deliveryFee: orderType === 'delivery' ? 40 : 0,
-      tax: cartTotal * 0.05,
-      total: cartTotal,
-      customerDetails,
-      paymentMethod,
-      specialInstructions,
-      orderType,
-      orderDate: new Date().toISOString()
+      user_id: user.id || null,
+      restaurant_id: restaurantId,
+      order_type: orderType,
+      items: cart.map(item => ({
+        menu_item_id: item.id,
+        quantity: item.quantity,
+        price_at_time: item.price
+      })),
+      subtotal,
+      delivery_fee: deliveryFee,
+      tax,
+      total_amount: cartTotal,
+      payment_method: paymentMethod,
+      customer_name: customerDetails.name,
+      customer_phone: customerDetails.phone,
+      delivery_address: customerDetails.address || null,
+      special_instructions: specialInstructions || null
     };
 
-    setTimeout(() => {
-      const newOrderId = 'ORD' + Date.now();
-      
+    try {
+      const response = await apiPost('/orders', orderData);
+
+      if (!response.success) {
+        alert(response.message || 'Failed to place order. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      const newOrderId = response.orderId;
+
+      // Keep localStorage record for client-side order history
       const orders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
       orders.push({ ...orderData, orderId: newOrderId, status: 'confirmed' });
       localStorage.setItem('qronos_orders', JSON.stringify(orders));
-      
+
       localStorage.removeItem('qronos_cart');
-      
+
       setLoading(false);
       setShowQRModal(false);
       setShowCardForm(false);
-      
-      // ✅ Navigate to OrderConfirmation Page
-      navigate('/order-confirmation', { 
-        state: { 
-          orderId: newOrderId, 
-          cartTotal: cartTotal, 
+
+      navigate('/order-confirmation', {
+        state: {
+          orderId: newOrderId,
+          cartTotal: cartTotal,
           paymentMethod: paymentMethod,
           orderType: orderType
-        } 
+        }
       });
-    }, 1000);
+    } catch (error) {
+      console.error('Order placement failed:', error);
+      alert('Something went wrong. Please try again.');
+      setLoading(false);
+    }
   };
 
   const handleQRPaymentDone = async () => {

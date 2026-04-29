@@ -37,13 +37,17 @@ const CustomerRegisterPage = () => {
     }
     setLoading(true);
     try {
-      await apiPost('/auth/register', {
+      const response = await apiPost('/auth/register', {
         name: formData.name,
         email: formData.email,
         phone: formData.phone,
         password: formData.password,
         role: 'customer',
       });
+      if (!response.success) {
+        setError(response.message || response.error || 'Registration failed');
+        return;
+      }
       alert('Registration successful! Please login.');
       navigate('/customer-login');
     } catch (err) {

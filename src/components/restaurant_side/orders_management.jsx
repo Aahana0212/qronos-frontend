@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiGet, apiPost } from '../../utils/api';
 import './OrdersManagement.css';
 
 const OrdersManagement = () => {
@@ -7,52 +8,94 @@ const OrdersManagement = () => {
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderItems, setSelectedOrderItems] = useState([]);
 
-  useEffect(() => {
-    loadOrders();
-  }, []);
+  const restaurantId = localStorage.getItem('restaurantId') || '1';
 
-  const loadOrders = () => {
-    const savedOrders = JSON.parse(localStorage.getItem('qronos_orders') || '[]');
-    const restaurantOrders = savedOrders.map(order => ({
-      ...order,
-      status: order.status || 'confirmed',
-      orderDate: order.orderDate || new Date().toISOString()
-    }));
-    setOrders(restaurantOrders);
-    setLoading(false);
+  const loadOrders = async ({ silent = false } = {}) => {
+    if (!silent) setRefreshing(true);
+    try {
+      const response = await apiGet(`/orders/restaurant/${restaurantId}/all`);
+      let fetchedOrders = [];
+      if (Array.isArray(response)) {
+        fetchedOrders = response;
+      } else if (response && Array.isArray(response.orders)) {
+        fetchedOrders = response.orders;
+      } else if (response && Array.isArray(response.data)) {
+        fetchedOrders = response.data;
+      }
+      setOrders(fetchedOrders);
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    const updatedOrders = orders.map(order =>
-      order.orderId === orderId ? { ...order, status: newStatus } : order
-    );
-    setOrders(updatedOrders);
-    localStorage.setItem('qronos_orders', JSON.stringify(updatedOrders));
+  useEffect(() => {
+    loadOrders({ silent: true });
+    // Poll for new orders every 10s so the page shows orders placed after open.
+    const interval = setInterval(() => loadOrders({ silent: true }), 10000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      await apiPost(`/orders/${orderId}/status`, { status: newStatus });
+      await loadOrders({ silent: true });
+    } catch (error) {
+      console.error('Error updating order:', error);
+      alert('Failed to update order status');
+    }
+  };
+
+  const viewOrderDetails = async (order) => {
+    try {
+      const response = await apiGet(`/orders/${order.order_id}`);
+      if (response && response.success) {
+        setSelectedOrder(response.order);
+        setSelectedOrderItems(response.items || []);
+      } else {
+        setSelectedOrder(order);
+        setSelectedOrderItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      setSelectedOrder(order);
+      setSelectedOrderItems([]);
+    }
   };
 
   const getStatusBadgeClass = (status) => {
     switch(status) {
       case 'confirmed': return 'status-confirmed';
+      case 'pending': return 'status-confirmed';
       case 'preparing': return 'status-preparing';
       case 'ready': return 'status-ready';
-      case 'out-for-delivery': return 'status-out';
+      case 'out_for_delivery': return 'status-out';
       case 'delivered': return 'status-delivered';
+      case 'completed': return 'status-delivered';
       default: return 'status-pending';
     }
   };
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
-    return order.status === filter;
+    return (order.order_status || order.status) === filter;
   });
 
   const stats = {
     total: orders.length,
-    pending: orders.filter(o => o.status === 'confirmed').length,
-    preparing: orders.filter(o => o.status === 'preparing').length,
-    delivered: orders.filter(o => o.status === 'delivered').length
+    pending: orders.filter(o => (o.order_status || o.status) === 'pending').length,
+    preparing: orders.filter(o => (o.order_status || o.status) === 'preparing').length,
+    delivered: orders.filter(o => ['delivered', 'completed'].includes(o.order_status || o.status)).length
   };
 
   if (loading) return <div className="orders-loading">Loading orders...</div>;
@@ -62,6 +105,24 @@ const OrdersManagement = () => {
       <div className="orders-header">
         <button className="back-btn" onClick={() => navigate('/owner-dashboard')}>← Dashboard</button>
         <h1>Order Management</h1>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {lastUpdated && (
+            <small style={{ color: '#666' }}>
+              Updated {lastUpdated.toLocaleTimeString()}
+            </small>
+          )}
+          <button
+            className="add-btn"
+            onClick={() => loadOrders()}
+            disabled={refreshing}
+            style={{ padding: '8px 16px' }}
+          >
+            {refreshing ? 'Refreshing…' : '↻ Refresh'}
+          </button>
+        </div>
+      </div>
+      <div style={{ marginBottom: 12, color: '#888', fontSize: 12 }}>
+        Showing orders for restaurant ID: <strong>{restaurantId}</strong>
       </div>
 
       <div className="orders-stats">
@@ -73,78 +134,83 @@ const OrdersManagement = () => {
 
       <div className="orders-filters">
         <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
-        <button className={`filter-btn ${filter === 'confirmed' ? 'active' : ''}`} onClick={() => setFilter('confirmed')}>Pending</button>
+        <button className={`filter-btn ${filter === 'pending' ? 'active' : ''}`} onClick={() => setFilter('pending')}>Pending</button>
         <button className={`filter-btn ${filter === 'preparing' ? 'active' : ''}`} onClick={() => setFilter('preparing')}>Preparing</button>
         <button className={`filter-btn ${filter === 'ready' ? 'active' : ''}`} onClick={() => setFilter('ready')}>Ready</button>
         <button className={`filter-btn ${filter === 'delivered' ? 'active' : ''}`} onClick={() => setFilter('delivered')}>Delivered</button>
       </div>
 
       <div className="orders-list">
-        {filteredOrders.map(order => (
-          <div key={order.orderId} className="order-card">
-            <div className="order-card-header">
-              <div>
-                <span className="order-id">#{order.orderId}</span>
-                <span className="order-date">{new Date(order.orderDate).toLocaleString()}</span>
+        {filteredOrders.length === 0 ? (
+          <div className="orders-loading">No orders found</div>
+        ) : (
+          filteredOrders.map(order => (
+            <div key={order.id} className="order-card">
+              <div className="order-card-header">
+                <div>
+                  <span className="order-id">#{order.order_id}</span>
+                  <span className="order-date">{new Date(order.created_at).toLocaleString()}</span>
+                </div>
+                <span className={`status-badge ${getStatusBadgeClass(order.order_status || order.status)}`}>
+                  {(order.order_status || order.status)?.toUpperCase()}
+                </span>
               </div>
-              <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
-                {order.status?.toUpperCase()}
-              </span>
-            </div>
-            
-            <div className="order-card-body">
-              <div className="order-customer">
-                <p><strong>Customer:</strong> {order.customerDetails?.name || 'Guest'}</p>
-                <p><strong>Phone:</strong> {order.customerDetails?.phone || '-'}</p>
-                <p><strong>Address:</strong> {order.customerDetails?.address || 'Pickup'}</p>
+
+              <div className="order-card-body">
+                <div className="order-customer">
+                  <p><strong>Customer:</strong> {order.customer_name || 'Guest'}</p>
+                  <p><strong>Phone:</strong> {order.customer_phone || '-'}</p>
+                  <p><strong>Address:</strong> {order.delivery_address || 'Pickup'}</p>
+                </div>
+                <div className="order-total">Total: ₹{Number(order.total_amount).toFixed(2)}</div>
               </div>
-              <div className="order-items-list">
-                <strong>Items:</strong>
-                {order.items?.map((item, idx) => (
-                  <div key={idx}>{item.quantity}x {item.name} - ₹{item.price}</div>
-                ))}
+
+              <div className="order-card-footer">
+                <select
+                  value={order.order_status || order.status}
+                  onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+                  className="status-select"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="preparing">Preparing</option>
+                  <option value="ready">Ready for Pickup</option>
+                  <option value="out_for_delivery">Out for Delivery</option>
+                  <option value="delivered">Delivered</option>
+                </select>
+                <button className="view-details-btn" onClick={() => viewOrderDetails(order)}>View Details</button>
               </div>
-              <div className="order-total">Total: ₹{order.total?.toFixed(2)}</div>
             </div>
-            
-            <div className="order-card-footer">
-              <select 
-                value={order.status} 
-                onChange={(e) => updateOrderStatus(order.orderId, e.target.value)}
-                className="status-select"
-              >
-                <option value="confirmed">Confirmed</option>
-                <option value="preparing">Preparing</option>
-                <option value="ready">Ready for Pickup</option>
-                <option value="out-for-delivery">Out for Delivery</option>
-                <option value="delivered">Delivered</option>
-              </select>
-              <button className="view-details-btn" onClick={() => setSelectedOrder(order)}>View Details</button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {selectedOrder && (
-        <div className="modal-overlay" onClick={() => setSelectedOrder(null)}>
+        <div className="modal-overlay" onClick={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>
           <div className="details-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>Order #{selectedOrder.orderId}</h2>
-              <button onClick={() => setSelectedOrder(null)}>✕</button>
+              <h2>Order #{selectedOrder.order_id}</h2>
+              <button onClick={() => { setSelectedOrder(null); setSelectedOrderItems([]); }}>✕</button>
             </div>
             <div className="modal-body">
               <h3>Customer Details</h3>
-              <p><strong>Name:</strong> {selectedOrder.customerDetails?.name}</p>
-              <p><strong>Phone:</strong> {selectedOrder.customerDetails?.phone}</p>
-              <p><strong>Address:</strong> {selectedOrder.customerDetails?.address}</p>
+              <p><strong>Name:</strong> {selectedOrder.customer_name || 'Guest'}</p>
+              <p><strong>Phone:</strong> {selectedOrder.customer_phone || '-'}</p>
+              <p><strong>Address:</strong> {selectedOrder.delivery_address || 'Pickup'}</p>
               <h3>Order Items</h3>
-              {selectedOrder.items?.map((item, idx) => (
-                <div key={idx}>{item.quantity}x {item.name} - ₹{item.price}</div>
-              ))}
+              {selectedOrderItems.length > 0 ? (
+                selectedOrderItems.map((item, idx) => (
+                  <div key={idx}>{item.quantity}x {item.name} - ₹{item.price_at_time}</div>
+                ))
+              ) : (
+                <p>No item details available</p>
+              )}
               <h3>Special Instructions</h3>
-              <p>{selectedOrder.specialInstructions || 'None'}</p>
+              <p>{selectedOrder.special_instructions || 'None'}</p>
               <h3>Payment Method</h3>
-              <p>{selectedOrder.paymentMethod === 'online' ? 'Online Payment' : 'Cash on Delivery'}</p>
+              <p>{selectedOrder.payment_method || '-'}</p>
+              <h3>Total</h3>
+              <p>₹{Number(selectedOrder.total_amount).toFixed(2)}</p>
             </div>
           </div>
         </div>

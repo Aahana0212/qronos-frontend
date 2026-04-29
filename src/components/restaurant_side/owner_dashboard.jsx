@@ -62,6 +62,13 @@ const OwnerDashboard = () => {
       return;
     }
     loadAllData();
+    // Poll dashboard + orders every 10s so new customer orders appear without manual refresh.
+    const interval = setInterval(() => {
+      fetchDashboardData();
+      fetchAllOrders();
+    }, 10000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restaurantId]);
 
   const loadAllData = async () => {
@@ -434,7 +441,7 @@ const OwnerDashboard = () => {
                     ) : (
                       recentOrders.map((order) => (
                         <tr key={order.id}>
-                          <td>#{order.order_number}</td>
+                          <td>#{order.order_id}</td>
                           <td>{order.customer_name}</td>
                           <td>₹{order.total_amount}</td>
                           <td><span className={`status-badge ${order.order_status || order.status}`}>{order.order_status || order.status}</span></td>
@@ -470,7 +477,7 @@ const OwnerDashboard = () => {
                   ) : (
                     allOrders.map((order) => (
                       <tr key={order.id}>
-                        <td>#{order.order_number}</td>
+                        <td>#{order.order_id}</td>
                         <td>{order.customer_name}</td>
                         <td>₹{order.total_amount}</td>
                         <td><span className={`status-badge ${order.order_status || order.status}`}>{order.order_status || order.status}</span></td>
